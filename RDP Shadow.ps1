@@ -1,57 +1,47 @@
-Add-Type -AssemblyName System.Windows.Forms
-[System.Windows.Forms.Application]::EnableVisualStyles()
+# Конвертер кодировки при выводе, иначе поиск не работает по выводу
+function ConvertTo-Encoding ([string]$From, [string]$To) {
+	Begin {
+		$encFrom = [System.Text.Encoding]::GetEncoding($from)
+		$encTo = [System.Text.Encoding]::GetEncoding($to)
+	}
+	Process {
+		$bytes = $encTo.GetBytes($_)
+		$bytes = [System.Text.Encoding]::Convert($encFrom, $encTo, $bytes)
+		$encTo.GetString($bytes)
+	}
+}
 
-$RDP_Shadow                      = New-Object system.Windows.Forms.Form
-$RDP_Shadow.ClientSize           = New-Object System.Drawing.Point(500,500)
-$RDP_Shadow.text                 = "RDP Теневое Клонирование"
-$RDP_Shadow.TopMost              = $false
+$PC = (Read-Host -Prompt "PC Name")
+# $cred = Get-Credential
 
-$ListView1                       = New-Object system.Windows.Forms.ListView
-$ListView1.text                  = "listView"
-$ListView1.width                 = 475
-$ListView1.height                = 263
-$ListView1.location              = New-Object System.Drawing.Point(11,226)
-
-$TextBox1                        = New-Object system.Windows.Forms.TextBox
-$TextBox1.multiline              = $false
-$TextBox1.text                   = "PC Name or IP"
-$TextBox1.width                  = 100
-$TextBox1.height                 = 20
-$TextBox1.location               = New-Object System.Drawing.Point(12,10)
-$TextBox1.Font                   = New-Object System.Drawing.Font('Microsoft Sans Serif',10)
-
-$TextBox2                        = New-Object system.Windows.Forms.TextBox
-$TextBox2.multiline              = $false
-$TextBox2.text                   = "User Name"
-$TextBox2.width                  = 100
-$TextBox2.height                 = 20
-$TextBox2.location               = New-Object System.Drawing.Point(11,43)
-$TextBox2.Font                   = New-Object System.Drawing.Font('Microsoft Sans Serif',10)
-
-$Button1                         = New-Object system.Windows.Forms.Button
-$Button1.text                    = "Connect"
-$Button1.width                   = 110
-$Button1.height                  = 63
-$Button1.location                = New-Object System.Drawing.Point(183,136)
-$Button1.Font                    = New-Object System.Drawing.Font('Microsoft Sans Serif',12)
-$Button1.ForeColor               = [System.Drawing.ColorTranslator]::FromHtml("#000000")
-$Button1.BackColor               = [System.Drawing.ColorTranslator]::FromHtml("#b8e986")
-
-$CheckBox1                       = New-Object system.Windows.Forms.CheckBox
-$CheckBox1.text                  = "Control"
-$CheckBox1.AutoSize              = $false
-$CheckBox1.width                 = 95
-$CheckBox1.height                = 20
-$CheckBox1.location              = New-Object System.Drawing.Point(17,76)
-$CheckBox1.Font                  = New-Object System.Drawing.Font('Microsoft Sans Serif',10)
-
-$RDP_Shadow.controls.AddRange(@($ListView1,$TextBox1,$TextBox2,$Button1,$CheckBox1))
-
-$Button1.Add_Click({ MyFunction $this $_ })
-
-function MyFunction ($sender,$event) { }
+# Проверяем компьютер в домене или нет. Запрашивать Учетные данные или нет
+if ((gwmi win32_computersystem).partofdomain -eq $true) {
+	write-host -fore green "Мой комп в домене"
+	$ss = Invoke-Command -ComputerName $PC `
+		-ScriptBlock { qwinsta.exe } | ConvertTo-Encoding -From cp866 -To windows-1251
+}
+else {
+	write-host -fore red "Мой комп НЕ в домене"
+	$ss = Invoke-Command -ComputerName $PC `
+		-ScriptBlock { qwinsta.exe } `
+		-Credential $(Get-Credential) | ConvertTo-Encoding -From cp866 -To windows-1251
+}
 
 
-#Write your logic code here
+$Header = "SESSIONNAME", "USERNAME", "ID", "STATUS"
+$sessions = (($ss) -replace "^[\s>]" , "" -replace "\s+" , "," | ConvertFrom-Csv -Header $Header)
+$sessions
+$SessionActiveID = ($sessions | Where-Object { $_.STATUS -eq 'Активно' -or $_.STATUS -eq 'Active' }).ID
 
-[void]$RDP_Shadow.ShowDialog()
+# mstsc /shadow:($SessionActive.ID) /v:$PC /control /noConsentPrompt /prompt
+
+# Проверяем компьютер в домене или нет. Запрашивать Учетные данные или нет
+if ((gwmi win32_computersystem).partofdomain -eq $true) {
+	write-host -fore green "Мой комп в домене"
+	Start-Process -FilePath mstsc -ArgumentList "/shadow:$SessionActiveID /v:$PC /control /noConsentPrompt"
+}
+else {
+	write-host -fore red "Мой комп НЕ в домене"
+	Start-Process -FilePath mstsc -ArgumentList "/shadow:$SessionActiveID /v:$PC /control /noConsentPrompt /prompt"
+}
+
