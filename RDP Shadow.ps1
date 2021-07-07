@@ -1,4 +1,4 @@
-﻿<# Требования.
+﻿<# Требования:
 1. На клиенте (тот компьютер, С которого подключаемся) должен стоять компонент - "Возможности рабочего стола" или "Media Foundation" (для Windows Server 2019)
 Install-WindowsFeature Server-Media-Foundation
 
@@ -10,6 +10,11 @@ HKLM\SYSTЕM\CurrеntCоntrоlSеt\Cоntrol\Tеrminal Sеrvеr
 
 Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "AllowRemoteRPC"
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "AllowRemoteRPC" -Value 1
+
+
+Комбинации клавиш можно использовать
+Ctrl + Alt + Break — переключения удаленного рабочего стола между режимами «во весь экран» и «в окне»
+
 #>
 
 # Конвертер кодировки при выводе, иначе поиск не работает по выводу
@@ -40,7 +45,6 @@ else {
 		-ScriptBlock { qwinsta.exe } `
 		-Credential $(Get-Credential) | ConvertTo-Encoding -From cp866 -To windows-1251
 }
-
 
 $Header = "SESSIONNAME", "USERNAME", "ID", "STATUS"
 $sessions = (($ss) -replace "^[\s>]" , "" -replace "\s+" , "," | ConvertFrom-Csv -Header $Header)
