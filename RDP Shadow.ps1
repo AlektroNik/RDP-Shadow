@@ -1,4 +1,18 @@
-﻿# Конвертер кодировки при выводе, иначе поиск не работает по выводу
+﻿<# Требования.
+1. На клиенте (тот компьютер, С которого подключаемся) должен стоять компонент - "Возможности рабочего стола" или "Media Foundation" (для Windows Server 2019)
+Install-WindowsFeature Server-Media-Foundation
+
+2. На сервере (тот компьютер, НА который подключаемся) должен быть включен RemoteRPC
+https://winitpro.ru/index.php/2018/07/11/rdp-shadow-k-rabochemu-stolu-polzovatelya-windows-10/
+
+HKLM\SYSTЕM\CurrеntCоntrоlSеt\Cоntrol\Tеrminal Sеrvеr
+"AllоwRemotеRPС"=dwоrd:00000001
+
+Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "AllowRemoteRPC"
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server" -Name "AllowRemoteRPC" -Value 1
+#>
+
+# Конвертер кодировки при выводе, иначе поиск не работает по выводу
 function ConvertTo-Encoding ([string]$From, [string]$To) {
 	Begin {
 		$encFrom = [System.Text.Encoding]::GetEncoding($from)
