@@ -1,4 +1,4 @@
-# Конвертер кодировки при выводе, иначе поиск не работает по выводу
+﻿# Конвертер кодировки при выводе, иначе поиск не работает по выводу
 function ConvertTo-Encoding ([string]$From, [string]$To) {
 	Begin {
 		$encFrom = [System.Text.Encoding]::GetEncoding($from)
